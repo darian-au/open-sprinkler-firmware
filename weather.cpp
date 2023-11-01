@@ -159,7 +159,7 @@ void GetWeather() {
   *dst = *src;
   uint16_t _port = ether.hisport; // save current port number
   ether.hisport = 80;
-  ether.browseUrl(PSTR("/weather"), dst, PSTR("*"), getweather_callback);
+  ether.browseUrl(PSTR("/weather"), dst, PSTR("weather.opensprinkler.com"), getweather_callback);
   ether.hisport = _port;
 }
 

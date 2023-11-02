@@ -45,7 +45,10 @@ void write_log(byte type, ulong curr_time);
 
 // The weather function calls getweather.py on remote server to retrieve weather data
 // the default script is WEATHER_SCRIPT_HOST/weather?.py
-static char website[] /*PROGMEM*/ = DEFAULT_WEATHER_URL ;
+
+#if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
+static char website[MAX_WEATHERURL] /*PROGMEM = DEFAULT_WEATHER_URL*/ ;
+#endif
 
 static void getweather_callback(byte status, uint16_t off, uint16_t len) {
 #if defined(ARDUINO)
@@ -135,8 +138,14 @@ void GetWeather() {
     port = atoi(delim + 1);
   }
   
+#if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
   // make a copy of the weather website
   strcpy(website, tmp_buffer);
+#else
+  // not enough memory space to copy the weather website, choose between default host or generic custom host
+  char * website = strcmp_to_nvm(DEFAULT_WEATHER_URL, ADDR_NVM_WEATHERURL) ? 
+    PSTR("*") : PSTR(DEFAULT_WEATHER_URL);
+#endif
   
   // count the valid IPv4 chars
   int spn;
@@ -195,7 +204,11 @@ void GetWeather() {
   *dst = *src;
   uint16_t _port = ether.hisport; // save current port number
   ether.hisport = port;
+#if defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega1284__)
   ether.browseUrlRamHost(PSTR("/weather"), dst, website, getweather_callback);
+#else
+  ether.browseUrl(PSTR("/weather"), dst, website, getweather_callback);
+#endif
   ether.hisport = _port;
 }
 

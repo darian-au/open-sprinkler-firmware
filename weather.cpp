@@ -124,10 +124,36 @@ static void getweather_callback(byte status, uint16_t off, uint16_t len) {
 
 #if defined(ARDUINO)  // for AVR
 void GetWeather() {
-  // perform DNS lookup for every query
-  nvm_read_block(tmp_buffer, (void*)ADDR_NVM_WEATHERURL, MAX_WEATHERURL);
-  ether.dnsLookup(tmp_buffer, true);
 
+  // read weather hostname
+  nvm_read_block(tmp_buffer, (void*)ADDR_NVM_WEATHERURL, MAX_WEATHERURL);
+  
+  // count the valid IPv4 chars
+  int spn;
+  {
+    char *ps = tmp_buffer;
+    for (spn = 0; *ps; ps++, spn++) {
+      if ((*ps < '0' || *ps > '9') && *ps != '.') {
+        break;
+      }
+    }
+  }
+  
+  if (spn == strlen(tmp_buffer)) {
+    // set IP address bytes
+    char *ip0 = strtok(tmp_buffer, ".");
+    char *ip1 = strtok(NULL, ".");
+    char *ip2 = strtok(NULL, ".");
+    char *ip3 = strtok(NULL, ".");
+    ether.hisip[0] = ip0 ? atoi(ip0) : 0;
+    ether.hisip[1] = ip1 ? atoi(ip1) : 0;
+    ether.hisip[2] = ip2 ? atoi(ip2) : 0;
+    ether.hisip[3] = ip3 ? atoi(ip3) : 0;
+  } else {
+    // perform DNS lookup
+    ether.dnsLookup(tmp_buffer, true);
+  }
+  
   //bfill=ether.tcpOffset();
   char tmp[60];
   read_from_file(wtopts_filename, tmp, 60);
@@ -159,7 +185,7 @@ void GetWeather() {
   *dst = *src;
   uint16_t _port = ether.hisport; // save current port number
   ether.hisport = 80;
-  ether.browseUrl(PSTR("/weather"), dst, PSTR("weather.opensprinkler.com"), getweather_callback);
+  ether.browseUrl(PSTR("/weather"), dst, PSTR(DEFAULT_WEATHER_URL), getweather_callback);
   ether.hisport = _port;
 }
 
